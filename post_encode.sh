@@ -15,6 +15,7 @@ analysis_dir=$1
 mkdir -p result
  
 #croo to gather results of ${analysis_dir} pipelines
+#on Franklin croo requires ENCODE pipeline to be loaded
 cd result
 mkdir -p file_transfer
 #write header for sample.csv
