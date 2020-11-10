@@ -110,9 +110,8 @@ for dir in `ls -d ../file_transfer/ | grep -v motif`; do
   #running motif and annotation
   sbatch --job-name=$dir --output=homer_${dir}.log --export=dir=$dir --wrap="findMotifsGenome.pl ${bedfile} ${genome} ${dir} -size given
                                                                             annotatePeaks.pl ${bedfile} ${genome} >  ${dir}/${dir}_annotation.txt
-                                                                            cp ../motif/${dir}/${dir}_annotation.txt motif/${dir}_annotation.txt
-                                                                            cp ../motif/${dir}/knownResults.html motif/${dir}_knownResults.html  "
-                                               
+                                                                            cp ${dir}/${dir}_annotation.txt ../file_transfer/motif/${dir}_annotation.txt
+                                                                            cp ${dir}/knownResults.html ../file_transfer/motif/${dir}_knownResults.html"                                           
 done
 
 
