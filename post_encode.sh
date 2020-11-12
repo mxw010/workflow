@@ -118,6 +118,10 @@ done
 #motif for differntial accessibility/binding sites
 sbatch --dependency=afterok:${diffbind_ID##* } --job-name="Motif_Differential_sites" --wrap
 
+sbatch  --wrap="findMotifsGenome.pl SDHB_Naive_WT_Naive_sig.txt hg38 . -size given -bg SDHB_Naive_WT_Naive_nonsig.txt
+                 annotatePeaks.pl SDHB_Naive_WT_Naive_sig.txt hg38 >  Naive_annotation.txt"
+             
+
 
 #unload homer
 ml unload homer/4.11.1
