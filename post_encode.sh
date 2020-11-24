@@ -21,7 +21,8 @@ mkdir -p file_transfer
 #write header for sample.csv
 echo "SampleID,Condition,Replicate,bamReads,Peaks,PeakCaller" > sample.csv 
 
-for dir in `ls -d ../${analysis_dir}/*`; do
+#for dir in `ls -d ../${analysis_dir}/*`; do
+for dir in `find ENCODE/ -maxdepth 1 -type d | tail -n+2`; do
   dir=`basename $dir`
   mkdir -p $dir
   cd $dir
