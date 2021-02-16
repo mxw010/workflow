@@ -13,7 +13,7 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 #ID for Sequencing_Systems Epigenetics Group
 spreadsheetId = '1gNHthk3lt6pYYSrFOPgjaQvy5AygMnjJakqyu77_FqY'
 
-
+#this is the function to sync with google sheet
 def main():
 	global df, service
 	creds = None
