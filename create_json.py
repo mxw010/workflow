@@ -1,3 +1,8 @@
+#install packages:
+#pip3 install --user google-auth-oauthlib
+#pip3 install --user google-api-python-client
+#pip3 install --user google-auth
+
 import pandas as pd
 import numpy as np
 from googleapiclient.discovery import build
