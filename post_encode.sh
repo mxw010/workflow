@@ -11,7 +11,14 @@
 #conditions=( PAX3-13 PAX3-27 )
 analysis_dir=$1
 #dir in root
- 
+
+if [[ ${#analysis_dir} -eq 0 ]]; then
+  echo "analysis_dir not set. Default is ENCODE"
+  analysis_dir=ENCODE
+fi
+
+
+rm -rf result
 mkdir -p result
  
 #croo to gather results of ${analysis_dir} pipelines
@@ -21,12 +28,13 @@ mkdir -p file_transfer
 #write header for sample.csv
 echo "SampleID,Condition,Replicate,bamReads,Peaks,PeakCaller" > sample.csv 
 
-for dir in `ls -d ../${analysis_dir}/*`; do
+#for dir in `ls -d ../${analysis_dir}/*`; do
+for dir in `find ../${analysis_dir}/ -maxdepth 1 -type d | grep -v "cromwell-workflow-logs" | tail -n+2`; do
   dir=`basename $dir`
   mkdir -p $dir
   cd $dir
   find ../../${analysis_dir}/${dir} -maxdepth 3 -name "metadata.json" -exec croo {} \;
-  nrep=`grep "rep" ../../${analysis_dir}/${dir}/example.json  | grep "R1" | wc -l`
+  nrep=`grep "rep" ../../${analysis_dir}/${dir}/example.json  | grep "R1" | grep -v "ctl" | wc -l` 
   #now write files to file_transfer
   crootable=`ls croo.filetable*`
 
@@ -133,14 +141,17 @@ for dir in `ls -d ../file_transfer/ | grep -v motif`; do
   #running motif and annotation
   sbatch --job-name=$dir --output=homer_${dir}.log --export=dir=$dir --wrap="findMotifsGenome.pl ${bedfile} ${genome} ${dir} -size given
                                                                             annotatePeaks.pl ${bedfile} ${genome} >  ${dir}/${dir}_annotation.txt
-                                                                            cp ../motif/${dir}/${dir}_annotation.txt motif/${dir}_annotation.txt
-                                                                            cp ../motif/${dir}/knownResults.html motif/${dir}_knownResults.html  "
-                                               
+                                                                            cp ${dir}/${dir}_annotation.txt ../file_transfer/motif/${dir}_annotation.txt
+                                                                            cp ${dir}/knownResults.html ../file_transfer/motif/${dir}_knownResults.html"                                           
 done
 
 
 #motif for differntial accessibility/binding sites
 sbatch --dependency=afterok:${diffbind_ID##* } --job-name="Motif_Differential_sites" --wrap
+
+sbatch  --wrap="findMotifsGenome.pl SDHB_Naive_WT_Naive_sig.txt hg38 . -size given -bg SDHB_Naive_WT_Naive_nonsig.txt
+                 annotatePeaks.pl SDHB_Naive_WT_Naive_sig.txt hg38 >  Naive_annotation.txt"
+             
 
 
 #unload homer

@@ -1,5 +1,31 @@
+<<<<<<< HEAD
 
 #this requires the server to be able to open an interactive verification process
+=======
+#install packages:
+#pip3 install --user google-auth-oauthlib
+#pip3 install --user google-api-python-client
+#pip3 install --user google-auth
+
+
+#guide: https://www.twilio.com/blog/2017/02/an-easy-way-to-read-and-write-to-a-google-spreadsheet-in-python.html
+#the scope needs to be changed to the following for this to work
+
+
+scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+creds = ServiceAccountCredentials.from_json_keyfile_name('/home/gdlessnicklab/mxw010/Data/secrets/stanton-bioinfor-1603567989841-a6075106e2cc.json', scope)
+client = gspread.authorize(creds)
+
+# Find a workbook by name and open the first sheet
+# Make sure you use the right name here.
+sheet = client.open("Sequencing_Systems Epigenetics Group").worksheet("Experiments")
+
+list_of_hashes = sheet.get_all_records()
+print(list_of_hashes)
+
+#=============end here
+
+>>>>>>> origin/main
 import pandas as pd
 import numpy as np
 from googleapiclient.discovery import build
@@ -15,7 +41,7 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 #ID for Sequencing_Systems Epigenetics Group
 spreadsheetId = '1gNHthk3lt6pYYSrFOPgjaQvy5AygMnjJakqyu77_FqY'
 
-
+#this is the function to sync with google sheet
 def main():
 	global df, service
 	creds = None
