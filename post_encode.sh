@@ -84,6 +84,28 @@ for dir in `ls -d ../${analysis_dir}/*`; do
 done
 
 #working directory is now result
+#transfer output for each treatment 
+cd file_transfer
+mkdir outputs
+for dir in `ls -d * | grep -v outputs`; do
+  mv $dir outputs/.
+done
+
+#deeptools to generate heatmaps
+#2 heatmaps: one for comparing replicates
+#             one for comparing different conditions
+ml load GCC/9.3.0  OpenMPI/4.0.3 deepTools/3.3.1-Python-3.8.2
+
+mkdir heatmaps
+if $nrep -gt 1; then
+  for dir in `ls -d outputs/*`; do
+    sbatch --job-name=$dir_heatmap --output=heatmap_${dir}.log --export=dir=$dir plotHeatmap.sh
+  done
+fi
+
+
+
+
 
 #diffbind analysis if nrep>1
 if $nrep -gt 1; then
@@ -96,6 +118,7 @@ if grep -q "mm10" ../file_transfer/${dir}/example.json;
   else
     genome="hg38"
   fi
+
 
 #motif analysis
 ml load homer/4.11.1
