@@ -25,7 +25,7 @@ def main():
 			creds.refresh(Request())
 		else:
 			flow = InstalledAppFlow.from_client_secrets_file(
-				'/home/gdstantonlab/mxw010/Data/Xuyong/credentials.json', SCOPES) # here enter the name of your downloaded JSON file
+				'/Users/mxw010/Downloads/credentials.json', SCOPES) # here enter the name of your downloaded JSON file
 			creds = flow.run_local_server(port=0)
 		with open('token.pickle', 'wb') as token:
 			pickle.dump(creds, token)
@@ -176,10 +176,49 @@ for comp in cond_var:
 		cond_var.remove(comp)
 
 #conditions
-cond = workbook[cond_var].apply(lambda row: '_'.join(row.values.astype(str)), axis=1)
+conditions = workbook[cond_var].apply(lambda row: '_'.join(row.values.astype(str)), axis=1)
 
 uniq_cond = np.unique(cond).tolist()
 
+re.search(x, uniq_cond[0], re.IGNORECASE) for x in workbook['Cell Type']
+
+cond_var.append("Target")
+
+#for combination of uniq setting + target, find all targets:
+data =pd.DataFrame()
+for i in range(0,len(workbook)):
+	y=workbook.iloc[i][cond_var]
+	if all(re.search(x, uniq_cond[0], re.IGNORECASE) for x in y):
+		data = data.append(workbook.iloc[i][['Library ID', 'Target', 'Replicate']])
+
+
+		reps = workbook.iloc[i]['Replicate']
+		if reps = rep rep = rep.append(reps)
+
+
+		'Library ID', 'Target', 'Replicate'
+
+
+
+
+
+	and workbook.iloc[i]['Target'].upper() == target:
+	    samples.append(workbook.iloc[i]['Library ID'])
+
+
+#and their matching input:
+input = []
+for i in range(0,len(workbook)):
+	y=workbook.iloc[i]
+	if y['Library ID'] == samples[0]:
+
+	    samples.append(workbook.iloc[i]['Library ID'])
+
+ Target  Treatment Timepoint         Cell Type Replicate
+
+
+
+	if re.search(y['Cell Type'],uniq_cond[0], re.IGNORECASE) and y['Target'] == target and 
 #if the combination of conditions and replicates does not match nrow of the data
 if len(np.unique(cond + "_" + workbook['Replicate'])) != len(workbook):
 	sys.exit("Condition configuration is wrong. Double check Treatment, Timepoint, Cell Type and Replicate!")
@@ -256,6 +295,10 @@ if re.search("ChIP", np.unique(workbook['Library Type'])[0], re.IGNORECASE):
 # 	return pipeline
 # pipeline_type = [chip_type(x) for x in target]
 for target in targets:
+
+
+	conditions = workbook[cond_var].apply(lambda row: '_'.join(row.values.astype(str)), axis=1)
+
 
 cond = conditions[workbook['Target'].str.upper() == target]
 uniq_cond = np.unique(cond).tolist()
