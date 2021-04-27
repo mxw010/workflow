@@ -230,8 +230,10 @@ for j in range(0,len(targets)):
 		description = description + ". Samples: " + ", ".join(data['Library ID'].tolist()) + "."
 		description = description + " Inputs: " + ", ".join(input) +"."
 		seq_type = 'chip'
-		item = { "chip.title": uniq_cond[k], "chip.description": description, "chip.pipeline_type": pipeline, "chip.genome_tsv": genome_tsv }
-		json_item = json.dumps(item, indent = 2, separators = (",",":"))
+		item = { "chip.title": uniq_cond[k], "chip.description": description, "chip.pipeline_type": pipeline, "chip.genome_tsv": genome_tsv}
+		#json_item = json.dumps(item, indent = 2, separators = (",",":"))
+		other_par = {"chip.aligner" : "bowtie2", "chip.align_only" : 'false', "chip.paired_end" : 'true', "chip.ctl_paired_end" : 'true'}
+		item.update(other_par)
 		#what if no controls?
 		#write fastqs for samples and controls:
 		#number of replicates
@@ -245,8 +247,8 @@ for j in range(0,len(targets)):
 				read1_pattern = read1_pattern.replace(' ',"")
 				read2_pattern = exp_ID_full + "/**/" + sampleID + "*R2*.fastq.gz"
 				read2_pattern = read2_pattern.replace(' ',"")
-				fastqs_R1 = glob.glob(read1_pattern, recursive=True)[0]
-				fastqs_R2 = glob.glob(read2_pattern, recursive=True)[0]
+				fastqs_R1 = glob.glob(read1_pattern, recursive=True)[0].split()
+				fastqs_R2 = glob.glob(read2_pattern, recursive=True)[0].split()
 				read1 = "chip.fastqs_" + rep + "_R1"
 				read2 =  "chip.fastqs_" + rep + "_R2"
 				#controls
@@ -254,20 +256,20 @@ for j in range(0,len(targets)):
 				control1_pattern = control1_pattern.replace(' ',"")
 				control2_pattern = exp_ID_full + "/**/" + inputID + "*R2*.fastq.gz"
 				control2_pattern = control2_pattern.replace(' ',"")
-				control_R1 = glob.glob(control1_pattern, recursive=True)[0]
-				control_R2 = glob.glob(control2_pattern, recursive=True)[0]
+				control_R1 = glob.glob(control1_pattern, recursive=True)[0].split()
+				control_R2 = glob.glob(control2_pattern, recursive=True)[0].split()
 				control1 = "chip.ctl_fastqs_" + rep + "_R1"
 				control2 =  "chip.ctl_fastqs_" + rep + "_R2"
 				reads = {read1: fastqs_R1, read2: fastqs_R2, control1: control_R1, control2: control_R2}
 			else:
 				read1_pattern = exp_ID_full + "/**/" + sampleID + "*R1*.fastq.gz"
 				read1_pattern = read1_pattern.replace(' ',"")
-				fastqs_R1 = glob.glob(read1_pattern, recursive=True)[0]
+				fastqs_R1 = glob.glob(read1_pattern, recursive=True)[0].split()
 				read1 = "chip.fastqs_" + rep + "_R1"
 				#controls
 				control1_pattern = exp_ID_full + "/**/" + inputID + "*R1*.fastq.gz"
 				control1_pattern = control1_pattern.replace(' ',"")
-				control_R1 = glob.glob(control1_pattern, recursive=True)[0]
+				control_R1 = glob.glob(control1_pattern, recursive=True)[0].split()
 				control1 = "chip.ctl_fastqs_" + rep + "_R1"
 				reads = {read1: fastqs_R1, control1: control_R1}
 			item.update(reads)
