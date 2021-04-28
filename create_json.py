@@ -96,6 +96,7 @@ workbook.loc[:,workbook.columns] = workbook.apply(lambda x: x.str.strip())
 workbook.loc[:,'Treatment'] = workbook['Treatment'].str.upper()
 workbook.loc[:,'Cell Type'] = workbook['Cell Type'].str.upper()
 workbook.loc[:,'Reference Genome'] = workbook['Reference Genome'].str.upper()
+workbook.loc[:,'Target'] = workbook['Target'].str.upper()
 
 #replace empty string in Treatment with "untreated"
 workbook.loc[:,'Treatment'] = workbook['Treatment'].replace(r'^\s*$', 'untreated', regex=True)
@@ -206,11 +207,6 @@ for j in range(0,len(targets)):
 			y=workbook_chip.iloc[i][cond_var]
 			if all(re.search(x, uniq_cond[k], re.IGNORECASE) for x in y) and re.search(target, workbook_chip.iloc[i]['Target'], re.IGNORECASE):
 				data = data.append(workbook_chip.iloc[i][['Library ID', 'Target', 'Replicate']])
-		#get input sample matching fastqs
-		input = []
-		for id in data['Library ID']:
-			exact_cond = workbook_chip.loc[workbook_chip['Library ID'] == id,cond_var]
-			input.append(workbook_chip.loc[workbook_chip[cond_var].eq(exact_cond).all(1), 'Library ID'].to_string(index=False).strip())
 		#pair end
 		if re.search("pair_end", workbook_chip.loc[workbook_chip['Library ID'] ==data.loc[data.index[0],'Library ID'],'Sequencing Modality'].to_string(index=False), re.IGNORECASE):
 			pair_end = 'true'
@@ -228,9 +224,9 @@ for j in range(0,len(targets)):
 		#os.getcwd() = getwd() 
 		description = "ChIP-seq analysis for " + uniq_cond[k] + ". Target: " + target
 		description = description + ". Samples: " + ", ".join(data['Library ID'].tolist()) + "."
-		description = description + " Inputs: " + ", ".join(input) +"."
+		description = description + " Inputs: "    #this needs to get changed
 		seq_type = 'chip'
-		item = { "chip.title": uniq_cond[k], "chip.description": description, "chip.pipeline_type": pipeline, "chip.genome_tsv": genome_tsv}
+		item = { "chip.title": uniq_cond[k], "chip.pipeline_type": pipeline, "chip.genome_tsv": genome_tsv}
 		#json_item = json.dumps(item, indent = 2, separators = (",",":"))
 		other_par = {"chip.aligner" : "bowtie2", "chip.align_only" : 'false', "chip.paired_end" : 'true', "chip.ctl_paired_end" : 'true'}
 		item.update(other_par)
@@ -240,8 +236,16 @@ for j in range(0,len(targets)):
 		nrep=len(data)
 		for i in range(1,nrep+1):
 			rep = "rep" + str(i)
-			sampleID = data.loc[data['Replicate'] == rep, 'Library ID'].item()
-			inputID = input[i-1]
+			sampleID = data.loc[data['Replicate'] == rep, 'Library ID'].to_string(index=False).strip()
+			exact_cond = workbook_chip.loc[workbook_chip['Library ID'] == sampleID,cond_var]
+			match = pd.DataFrame()
+			for m in range(0,len(cond_var)):
+				match[cond_var[m]] = workbook_chip[cond_var[m]] == exact_cond.iloc[0,m]
+			x = [all(match.loc[match.index[x],:]) for x in range(0,len(match))]
+			y = [x == "INPUT" for x in workbook_chip['Target']]
+			z = [x == rep for x in workbook_chip['Replicate']]
+			inputID = workbook_chip[[a and b and c for a, b, c in zip(x, y, z)]]['Library ID'].to_string(index=False).strip()
+			description = description + inputID + " "
 			if pair_end:
 				read1_pattern = exp_ID_full + "/**/" + sampleID + "*R1*.fastq.gz"
 				read1_pattern = read1_pattern.replace(' ',"")
@@ -274,7 +278,8 @@ for j in range(0,len(targets)):
 				reads = {read1: fastqs_R1, control1: control_R1}
 			item.update(reads)
 		#other parameters
-		other_par = {"chip.peak_caller" : "macs2", "chip.true_rep_only" : 'true', "chip.always_use_pooled_ctl" : 'false'}
+		description = description + "."
+		other_par = {"chip.peak_caller" : "macs2", "chip.true_rep_only" : 'true', "chip.always_use_pooled_ctl" : 'false', "chip.description" : description}
 		item.update(other_par)
 		#for some reason json.dump is not formatting the file correctly
 		# json_item = json.dumps(item, indent=2, separators = (","," : "))
@@ -285,7 +290,6 @@ for j in range(0,len(targets)):
 		file.close()  
 		os.chdir("..")
 	os.chdir("..")
-
 
 
 #=====stopped here#
