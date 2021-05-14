@@ -172,11 +172,11 @@ for i in range(0,len(workbook)):
 
 
 #remove variables that doesn't vary
-cond_var = ['Primary Cell Type', 'Treatment', 'Timepoint']
-for comp in cond_var:
-	if len(np.unique(workbook_chip[comp])) == 1:
-		cond_var.remove(comp)
-		
+prim_cond_var = ['Primary Cell Type', 'Treatment', 'Timepoint']
+#for comp in cond_var:
+#	if len(np.unique(workbook_chip[comp])) == 1:
+#		cond_var.remove(comp)
+cond_var = [ x for x in prim_cond_var if len(np.unique(workbook_chip[x])) > 1 ]		
 
 #conditions
 conditions = workbook_chip[cond_var].apply(lambda row: '_'.join(row.values.astype(str)), axis=1)
