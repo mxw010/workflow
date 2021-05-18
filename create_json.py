@@ -12,6 +12,7 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
 #ID for Sequencing_Systems Epigenetics Group
 spreadsheetId = '1gNHthk3lt6pYYSrFOPgjaQvy5AygMnjJakqyu77_FqY'
+spike_in= 'true'
 
 #this is the function to sync with google sheet
 def main():
@@ -77,15 +78,15 @@ main()
 #------start of the process
 
 #for a particular study
-study="GSL-LL-2096"
+study="GSL-LL-2096_rerun"
 
 select = [ 'Sample ID (multiplex)', 'Library ID', 'Library Type', 'Reference Genome', 'Target', 'Treatment', 'Timepoint', 'Cell Type', 'Replicate','Sequencing Modality' ]
 
 workbook = df[select][df['Sample ID (multiplex)'] == study]
 exp_ID = np.unique(workbook['Sample ID (multiplex)'])[0]
 #full path to fastq files
-exp_ID_full = glob.glob("/home/gdstantonlab/lab/fastq/*" + study)[0]
-
+#exp_ID_full = glob.glob("/home/gdstantonlab/lab/fastq/*" + study)[0]
+exp_ID_full = glob.glob("/home/gdstantonlab/lab/trimmed_fastq/*"+ study)[0]
 
 
 #string manipulation:
@@ -173,9 +174,12 @@ for i in range(0,len(workbook)):
 
 #remove variables that doesn't vary
 prim_cond_var = ['Primary Cell Type', 'Treatment', 'Timepoint']
-#for comp in cond_var:
+#this works:
+#temp = prim_cond_var
+#for comp in temp:
 #	if len(np.unique(workbook_chip[comp])) == 1:
-#		cond_var.remove(comp)
+#		prim_cond_var.remove(comp)
+
 cond_var = [ x for x in prim_cond_var if len(np.unique(workbook_chip[x])) > 1 ]		
 
 #conditions
@@ -212,7 +216,7 @@ for j in range(0,len(targets)):
 			pair_end = 'true'
 		else:
 			pair_end = 'false'
-		primary_genome = workbook_chip.loc[workbook_chip['Library ID'] ==data.loc[data.index[0],'Library ID'],'Primary Genome'].to_string(index=False)
+		primary_genome = workbook_chip.loc[workbook_chip['Library ID'] ==data.loc[data.index[0],'Library ID'],'Primary Genome'].to_string(index=False)	
 		#reference genome file for hg38 and mm10
 		if re.search("HUMAN", primary_genome, re.IGNORECASE):
 			genome_tsv = "https://storage.googleapis.com/encode-pipeline-genome-data/genome_tsv/v3/hg38.tsv"
@@ -220,16 +224,22 @@ for j in range(0,len(targets)):
 			genome_tsv = "https://storage.googleapis.com/encode-pipeline-genome-data/genome_tsv/v3/mm10.tsv"
 		else:
 			sys.exit("Not aligning to human/mouse genome; reference genome is: " + ref_gen)
+		if spike_in == 'true':
+			spike_in_genome= workbook_chip.loc[workbook_chip['Library ID'] ==data.loc[data.index[0],'Library ID'],'SpikeIn Genome'].to_string(index=False)
+			if re.search("HUMAN", spike_in_genome, re.IGNORECASE):
+				spikein_tsv = "https://storage.googleapis.com/encode-pipeline-genome-data/genome_tsv/v3/hg38.tsv"
+			elif re.search("MOUSE", spike_in_genome, re.IGNORECASE):	
+				spikein_tsv = "https://storage.googleapis.com/encode-pipeline-genome-data/genome_tsv/v3/mm10.tsv"
+			else:
+				sys.exit("Not aligning to human/mouse genome; Spike-in genome is: " + ref_gen)
 		#make json file
 		#os.getcwd() = getwd() 
 		description = "ChIP-seq analysis for " + uniq_cond[k] + ". Target: " + target
 		description = description + ". Samples: " + ", ".join(data['Library ID'].tolist()) + "."
 		description = description + " Inputs: "    #this needs to get changed
 		seq_type = 'chip'
-		item = { "chip.title": uniq_cond[k], "chip.pipeline_type": pipeline, "chip.genome_tsv": genome_tsv}
-		#json_item = json.dumps(item, indent = 2, separators = (",",":"))
-		other_par = {"chip.aligner" : "bowtie2", "chip.align_only" : 'false', "chip.paired_end" : 'true', "chip.ctl_paired_end" : 'true'}
-		item.update(other_par)
+		item = { "chip.title": uniq_cond[k], "chip.pipeline_type": pipeline, "chip.aligner" : "bowtie2", "chip.paired_end" : 'true', "chip.ctl_paired_end" : 'true',
+				 "chip.peak_caller" : "macs2", "chip.true_rep_only" : 'true', "chip.always_use_pooled_ctl" : 'false'}
 		#what if no controls?
 		#write fastqs for samples and controls:
 		#number of replicates
@@ -247,18 +257,22 @@ for j in range(0,len(targets)):
 			inputID = workbook_chip[[a and b and c for a, b, c in zip(x, y, z)]]['Library ID'].to_string(index=False).strip()
 			description = description + inputID + " "
 			if pair_end:
-				read1_pattern = exp_ID_full + "/**/" + sampleID + "*R1*.fastq.gz"
+				#read1_pattern = exp_ID_full + "/**/" + sampleID + "*R1*.fastq.gz"
+				read1_pattern = exp_ID_full + "/**/" + sampleID + "*R1*.fq.gz"
 				read1_pattern = read1_pattern.replace(' ',"")
-				read2_pattern = exp_ID_full + "/**/" + sampleID + "*R2*.fastq.gz"
+				#read2_pattern = exp_ID_full + "/**/" + sampleID + "*R2*.fastq.gz"
+				read2_pattern = exp_ID_full + "/**/" + sampleID + "*R2*.fq.gz"
 				read2_pattern = read2_pattern.replace(' ',"")
 				fastqs_R1 = glob.glob(read1_pattern, recursive=True)[0].split()
 				fastqs_R2 = glob.glob(read2_pattern, recursive=True)[0].split()
 				read1 = "chip.fastqs_" + rep + "_R1"
 				read2 =  "chip.fastqs_" + rep + "_R2"
 				#controls
-				control1_pattern = exp_ID_full + "/**/" + inputID + "*R1*.fastq.gz"
+				#control1_pattern = exp_ID_full + "/**/" + inputID + "*R1*.fastq.gz"
+				control1_pattern = exp_ID_full + "/**/" + inputID + "*R1*.fq.gz"
 				control1_pattern = control1_pattern.replace(' ',"")
-				control2_pattern = exp_ID_full + "/**/" + inputID + "*R2*.fastq.gz"
+				#control2_pattern = exp_ID_full + "/**/" + inputID + "*R2*.fastq.gz"
+				control2_pattern = exp_ID_full + "/**/" + inputID + "*R2*.fq.gz"
 				control2_pattern = control2_pattern.replace(' ',"")
 				control_R1 = glob.glob(control1_pattern, recursive=True)[0].split()
 				control_R2 = glob.glob(control2_pattern, recursive=True)[0].split()
@@ -266,29 +280,45 @@ for j in range(0,len(targets)):
 				control2 =  "chip.ctl_fastqs_" + rep + "_R2"
 				reads = {read1: fastqs_R1, read2: fastqs_R2, control1: control_R1, control2: control_R2}
 			else:
-				read1_pattern = exp_ID_full + "/**/" + sampleID + "*R1*.fastq.gz"
+				#read1_pattern = exp_ID_full + "/**/" + sampleID + "*R1*.fastq.gz"
+				read1_pattern = exp_ID_full + "/**/" + sampleID + "*R1*.fq.gz"
 				read1_pattern = read1_pattern.replace(' ',"")
 				fastqs_R1 = glob.glob(read1_pattern, recursive=True)[0].split()
 				read1 = "chip.fastqs_" + rep + "_R1"
 				#controls
-				control1_pattern = exp_ID_full + "/**/" + inputID + "*R1*.fastq.gz"
+				#control1_pattern = exp_ID_full + "/**/" + inputID + "*R1*.fastq.gz"
+				control1_pattern = exp_ID_full + "/**/" + inputID + "*R1*.fq.gz"
 				control1_pattern = control1_pattern.replace(' ',"")
 				control_R1 = glob.glob(control1_pattern, recursive=True)[0].split()
 				control1 = "chip.ctl_fastqs_" + rep + "_R1"
 				reads = {read1: fastqs_R1, control1: control_R1}
-			item.update(reads)
-		#other parameters
+			item.update(reads)		
 		description = description + "."
-		other_par = {"chip.peak_caller" : "macs2", "chip.true_rep_only" : 'true', "chip.always_use_pooled_ctl" : 'false', "chip.description" : description}
-		item.update(other_par)
+		item.update({"chip.description" : description}) 
+		if spike_in == 'true':
+			os.mkdir("spike_in")
+			os.mkdir('align_primary')
+			os.mkdir('analysis')
+			item_primary = item
+			item_spike_in = item
+			item_primary.update({"chip.genome_tsv": genome_tsv, "chip.align_only" : 'false', "chip.xcor_exclusion_range_max" : 100})
+			file = open('align_primary/working.json', 'w')
+			file.write(json.dumps(item_primary, indent=4, separators = (","," : "))) 
+			file.close() 
+			item_spike_in.update({"chip.genome_tsv": spikein_tsv, "chip.align_only" : 'true'}) 
+			file = open('spike_in/working.json', 'w')
+			file.write(json.dumps(item_spike_in, indent=4, separators = (","," : "))) 
+			file.close()  
+		else:
+			item.update({"chip.genome_tsv": genome_tsv, "chip.align_only" : 'false'})
+			file = open('working.json', 'w')
+			file.write(json.dumps(item, indent=4, separators = (","," : "))) 
+			file.close()  
+		os.chdir("..")
 		#for some reason json.dump is not formatting the file correctly
 		# json_item = json.dumps(item, indent=2, separators = (","," : "))
 		# with open('atac.json', 'w') as outfile:
 		# 	json.dump(json_item, outfile)
-		file = open('working.json', 'w')
-		file.write(json.dumps(item, indent=4, separators = (","," : "))) 
-		file.close()  
-		os.chdir("..")
 	os.chdir("..")
 
 
