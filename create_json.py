@@ -78,11 +78,15 @@ main()
 #------start of the process
 
 #for a particular study
-study="GSL-LL-2096_rerun"
+study="GSL-BS-2005"
 
 select = [ 'Sample ID (multiplex)', 'Library ID', 'Library Type', 'Reference Genome', 'Target', 'Treatment', 'Timepoint', 'Cell Type', 'Replicate','Sequencing Modality' ]
 
 workbook = df[select][df['Sample ID (multiplex)'] == study]
+
+#a subset
+temp = workbook[workbook['Cell Type'].str.contains("HAP",case="false")]
+workbook = temp
 exp_ID = np.unique(workbook['Sample ID (multiplex)'])[0]
 #full path to fastq files
 #exp_ID_full = glob.glob("/home/gdstantonlab/lab/fastq/*" + study)[0]
@@ -137,7 +141,7 @@ for i in range(0, len(workbook)):
 		workbook.loc[workbook.index[i],'Sequencing Modality'] = 'single_end'
 	#get primary genome, spike-in, and primary cell type
 	else:
-		workbook.iloc[i]['Sequencing Modality'] = 'paired_end'
+		workbook.loc[workbook.index[i],'Sequencing Modality'] = 'paired_end'
 	if re.search("/", workbook.iloc[i]['Reference Genome']):
 		ref_gen = workbook.iloc[i]['Reference Genome']
 		#python does not like it when you assign value over iloc
@@ -165,6 +169,7 @@ os.chdir(study)
 
 
 #get workbook for chip-seq:
+#instead of ATAc-seq:
 workbook_chip = pd.DataFrame()
 
 for i in range(0,len(workbook)):
@@ -181,9 +186,11 @@ prim_cond_var = ['Primary Cell Type', 'Treatment', 'Timepoint']
 #		prim_cond_var.remove(comp)
 
 cond_var = [ x for x in prim_cond_var if len(np.unique(workbook_chip[x])) > 1 ]		
-
-#conditions
-conditions = workbook_chip[cond_var].apply(lambda row: '_'.join(row.values.astype(str)), axis=1)
+if len(cond_var) == 0:
+	cond_var = 'Primary Cell Type'
+	conditions = workbook_chip[cond_var]
+else:
+	conditions = workbook_chip[cond_var].apply(lambda row: '_'.join(row.values.astype(str)), axis=1)
 
 
 #figure out if this is TF or histone marks
