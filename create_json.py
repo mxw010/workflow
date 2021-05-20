@@ -85,7 +85,8 @@ select = [ 'Sample ID (multiplex)', 'Library ID', 'Library Type', 'Reference Gen
 workbook = df[select][df['Sample ID (multiplex)'] == study]
 
 #a subset
-temp = workbook[workbook['Cell Type'].str.contains("HAP",case="false")]
+temp = workbook[workbook['Reference Genome'].str.upper().str.contains("MOUSE")]
+
 workbook = temp
 exp_ID = np.unique(workbook['Sample ID (multiplex)'])[0]
 #full path to fastq files
@@ -177,6 +178,10 @@ for i in range(0,len(workbook)):
 		workbook_chip = workbook_chip.append(workbook.iloc[i])
 
 
+summary_primary = workbook_chip[['Library ID', 'Primary Genome', 'Primary Cell Type', 'Target']]
+summary_primary.to_csv("PrimaryQC.csv")
+summary_spikein = workbook_chip[['Library ID', 'SpikeIn Genome', 'SpikeIn Cell Type', 'Target']]
+summary_spikein.to_csv("SpikeInQC.csv")
 #remove variables that doesn't vary
 prim_cond_var = ['Primary Cell Type', 'Treatment', 'Timepoint']
 #this works:
@@ -201,18 +206,20 @@ targets = set(j.upper() for j in np.unique(workbook_chip['Target'])).difference(
 targets = list(targets)
 pipeline_types = [ "histone" if re.search('H2|H3|H4', repr(x)) else "tf" for x in targets]
 
+sample = []
+input = []
 
 for j in range(0,len(targets)):
 	target = targets[j]
-	os.mkdir(target)
-	os.chdir(target)
+	#os.mkdir(target)
+	#os.chdir(target)
 	pipeline = pipeline_types[j]
 	cond = conditions[workbook_chip['Target'].str.upper() == target]
 	uniq_cond = np.unique(cond).tolist()
 	#for combination of uniq setting + target, find all targets:
 	for k in range(0,len(uniq_cond)):
-		os.mkdir(uniq_cond[k])
-		os.chdir(uniq_cond[k])
+		#os.mkdir(uniq_cond[k])
+		#os.chdir(uniq_cond[k])
 		data =pd.DataFrame()
 		for i in range(0,len(workbook_chip)):
 			y=workbook_chip.iloc[i][cond_var]
@@ -254,6 +261,7 @@ for j in range(0,len(targets)):
 		for i in range(1,nrep+1):
 			rep = "rep" + str(i)
 			sampleID = data.loc[data['Replicate'] == rep, 'Library ID'].to_string(index=False).strip()
+			sample.append(sampleID)
 			exact_cond = workbook_chip.loc[workbook_chip['Library ID'] == sampleID,cond_var]
 			match = pd.DataFrame()
 			for m in range(0,len(cond_var)):
@@ -262,6 +270,7 @@ for j in range(0,len(targets)):
 			y = [x == "INPUT" for x in workbook_chip['Target']]
 			z = [x == rep for x in workbook_chip['Replicate']]
 			inputID = workbook_chip[[a and b and c for a, b, c in zip(x, y, z)]]['Library ID'].to_string(index=False).strip()
+			input.append(inputID)
 			description = description + inputID + " "
 			if pair_end:
 				#read1_pattern = exp_ID_full + "/**/" + sampleID + "*R1*.fastq.gz"
@@ -303,33 +312,38 @@ for j in range(0,len(targets)):
 		description = description + "."
 		item.update({"chip.description" : description}) 
 		if spike_in == 'true':
-			os.mkdir("spike_in")
-			os.mkdir('align_primary')
-			os.mkdir('analysis')
+			#os.mkdir("spike_in")
+			#os.mkdir('align_primary')
+			#os.mkdir('analysis')
 			item_primary = item
 			item_spike_in = item
 			item_primary.update({"chip.genome_tsv": genome_tsv, "chip.align_only" : 'false', "chip.xcor_exclusion_range_max" : 100})
-			file = open('align_primary/working.json', 'w')
-			file.write(json.dumps(item_primary, indent=4, separators = (","," : "))) 
-			file.close() 
+			#file = open('align_primary/working.json', 'w')
+			#file.write(json.dumps(item_primary, indent=4, separators = (","," : "))) 
+			#file.close() 
 			item_spike_in.update({"chip.genome_tsv": spikein_tsv, "chip.align_only" : 'true'}) 
-			file = open('spike_in/working.json', 'w')
-			file.write(json.dumps(item_spike_in, indent=4, separators = (","," : "))) 
-			file.close()  
+			#file = open('spike_in/working.json', 'w')
+			#file.write(json.dumps(item_spike_in, indent=4, separators = (","," : "))) 
+			#file.close()  
 		else:
 			item.update({"chip.genome_tsv": genome_tsv, "chip.align_only" : 'false'})
-			file = open('working.json', 'w')
-			file.write(json.dumps(item, indent=4, separators = (","," : "))) 
-			file.close()  
-		os.chdir("..")
+			#file = open('working.json', 'w')
+			#file.write(json.dumps(item, indent=4, separators = (","," : "))) 
+			#file.close()  
+		#os.chdir("..")
 		#for some reason json.dump is not formatting the file correctly
 		# json_item = json.dumps(item, indent=2, separators = (","," : "))
 		# with open('atac.json', 'w') as outfile:
 		# 	json.dump(json_item, outfile)
-	os.chdir("..")
+	#os.chdir("..")
+df = pd.DataFrame({'Sample': sample, 'Input': input})
+df.to_csv("Design_sheet.csv")
+
+###-----write QC table
 
 
-#=====stopped here#
+
+
 
 #if re.search(y['Cell Type'],uniq_cond[0], re.IGNORECASE) and y['Target'] == target and 
 #if the combination of conditions and replicates does not match nrow of the data
