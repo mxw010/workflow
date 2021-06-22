@@ -28,6 +28,7 @@ primary['filtered'] = spikeIn['filtered'] = ''
 primary['deduped'] = spikeIn['deduped'] = ''
 primary['dup_rate'] = spikeIn['dup_rate'] = ''
 
+
 for i in range(0,len(primary)):
 	library = primary.iloc[i]['Library ID']
 	target = primary.iloc[i]['Target']
@@ -72,3 +73,8 @@ for i in range(0,len(primary)):
 
 primary.to_csv("primary_alignment_stats.csv", index=False)
 spikeIn.to_csv("SpikeIn_alignment_stats.csv", index=False)
+
+#get normalizing factor
+factor = min(spikeIn['deduped'])/spikeIn['deduped']
+downsample = pd.DataFrame({'sample':primary['Library ID'], 'factor':factor})
+downsample.to_csv("downsample_percentage.txt", sep="\t", index=False, header=False)
