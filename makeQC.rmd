@@ -1,0 +1,166 @@
+---
+title: "MYOD First Pass Alignment Stats"
+author: "Meng Wang"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: 
+    html_document:
+        keep_md: yes
+    #pdf_document: default
+    
+---
+
+```{r setup, include=FALSE, eval = FALSE}
+knitr::opts_chunk$set(
+    echo = TRUE,
+    cache = FALSE,
+    dpi = 300,
+    bootstrap.show.code = FALSE,
+    bootstrap.show.output = FALSE,
+    bootstrap.show.message = FALSE,
+    include = FALSE
+)
+```
+
+<!-- load libraries -->
+```{r libraries, cache=FALSE, eval=TRUE, echo = FALSE}
+library(ggplot2)
+library(DT)
+library(glue)
+library(gt)
+theme_set(theme_bw())
+theme_update(plot.title = element_text(hjust = 0.5))
+library(knitr)
+library(dplyr)
+library(reshape2)
+library(viridis)
+library(gridExtra)
+library(grid)
+library(lattice)
+get_legend <- function(myggplot) {
+    tmp <- ggplot_gtable(ggplot_build(myggplot))
+    leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+    legend <- tmp$grobs[[leg]]
+    return(legend)
+}
+```
+
+
+
+# Alignment Stats
+
+```{r data, echo=FALSE}
+primary <- read.csv("primary_alignment_stats.csv")
+spikein <- read.csv("SpikeIn_alignment_stats.csv")
+df_plot <- rbind(primary, spikein)
+df <- merge(primary, spikein, by.x = 1, by.y = 1)
+```
+
+```{r library_size, echo=FALSE, warning=FALSE}
+df_plot <- df_plot[order(df_plot[, 1]), ]
+y <- df_plot %>%
+    subset(Genome == "HUMAN")
+lib <- y %>%
+    ggplot(aes(x = Library.ID, y = total_reads)) +
+    geom_bar(position = "dodge", stat = "identity") +
+    geom_text(
+    aes(x = Library.ID, y = total_reads, label = paste(round(y$dup_rate, 2), "%", sep="")),
+    position = position_dodge(width = 1),
+    vjust = -0.5, size = 5) + 
+    scale_fill_viridis(discrete = T) +
+    ggtitle("Library Size") +
+    xlab("") +
+    ylab("Reads") +
+    scale_x_discrete(labels = paste(y$Cell, y$Target)) +
+    # scale_x_discrete(labels = sapply(1:nrow(df), function(x) paste(df_plot$Cell[x], df_plot$Target[x]))) +
+    theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+```{r reads_ratio, echo=FALSE}
+df_ratio <- df_plot[with(df_plot, Genome == "HUMAN"), c(1, 3, 4)]
+ratio <- df_plot[df_plot$Genome == "HUMAN", 6:9] / df_plot[df_plot$Genome == "MOUSE", 6:9]
+ratio_plot <- cbind(df_ratio, ratio) %>%
+    melt(id.vars = c("Library.ID", "Cell", "Target")) %>%
+    ggplot(aes(x = Library.ID, y = value, fill = variable)) +
+    geom_bar(position = "dodge", stat = "identity") +
+    scale_fill_viridis(discrete = T, labels = c("Mapped Reads", "Properly Mapped Reads", "QC Filtered", "Dedupped Reads")) +
+    ggtitle("Primary / Spike-In Reads Ratio") +
+    xlab("") +
+    ylab(expression(frac("Human Reads", "Mouse Reads"))) +
+    labs(fill = "Types of Reads") +
+    scale_x_discrete(labels = paste(df_ratio$Target, df_ratio$Cell)) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1), legend.position = "bottom")
+legend <- get_legend(ratio_plot)
+ratio_plot <- ratio_plot + theme(legend.position = "none")
+```
+
+```{r downscale_coef, echo=FALSE}
+norm <- apply(df_plot[df_plot$Genome == "MOUSE", 6:9], 2, function(x) min(x) / x)
+norm <- cbind(df_plot[with(df_plot, Genome == "MOUSE"), c(1, 3, 4), ], norm_naive)
+
+norm_const <- norm %>%
+    melt(id.vars = c("Library.ID", "Cell", "Target")) %>%
+    ggplot(aes(x = Library.ID, y = value, fill = variable)) +
+    geom_bar(position = "dodge", stat = "identity") +
+    scale_fill_viridis(discrete = T, labels = c("Mapped Reads", "Properly Mapped Reads", "QC Filtered", "Dedupped Reads")) +
+    ggtitle("Normalizing Constant Comparison") +
+    xlab("") +
+    ylab("Normalizing Constant") +
+    scale_x_discrete(labels = paste(norm$Target, norm$Cell)) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1), legend.position = "none")
+```
+
+```{r spikein_mapping, echo=FALSE}
+new <- df_plot[with(df_plot, Genome == "HUMAN"), -c(2, 5, 10)] %>%
+    melt(id.vars = c("Library.ID", "Cell", "Target"))
+alignment <- new %>%
+    ggplot(aes(x = Library.ID, y = value, fill = variable)) +
+    geom_bar(position = "dodge", stat = "identity") +
+    scale_fill_viridis(discrete = T, labels = c("Mapped Reads", "Properly Mapped Reads", "QC Filtered", "Dedupped Reads")) +
+    ggtitle("Read Count (hg38)") +
+    xlab("") +
+    ylab("Reads") +
+    labs(fill = "Types of Reads") +
+    scale_x_discrete(labels = paste(new$Target, new$Cell)) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1), legend.position = "none")
+```
+
+```{r plot, fig.width=10, fig.height=11, warning=FALSE, echo=FALSE}
+ grid.arrange(lib, alignment, ratio_plot, norm_const, legend, ncol=2, nrow = 3,
+            layout_matrix = rbind(c(1,2), c(3,4), c(5,5)),
+            widths = c(2.7, 2.7), heights = c(3,3,0.3))
+```
+
+
+# Summary Table
+
+```{r mapping_table, echo=FALSE}
+new <- df[, c(1, 3, 4, 5, 9, 10, 18, 19), ]
+new %>%
+    gt(rowname_col = "Library.ID") %>%
+    cols_label(
+        Cell.x = "Cell",
+        Target.x = "Target",
+        total_reads.x = "Total Reads",
+        deduped.x = "Deduped",
+        dup_rate.x = "Dup Rate",
+        deduped.y = "Deduped Reads",
+        dup_rate.y = "Dup Rate"
+    ) %>%
+    fmt_number(columns = c(total_reads.x, deduped.x, deduped.y), decimals = 0) %>%
+    fmt_percent(columns = matches("dup_rate"), scale_values = FALSE) %>%
+    tab_spanner(label = "Human", columns = c(deduped.x, dup_rate.x)) %>%
+    tab_spanner(label = "Mouse", columns = c(deduped.y, dup_rate.y))
+```
+
+# Motifs
+```{bash}
+for dir in `ls -d */`; do
+    dir=`basename $dir`
+    cd $dir
+    bedfile=`ls *IDR*.bed`
+    sbatch --time=12:00:00 --wrap "findMotifsGenome.pl ${bedfile} hg38 motifs -size given
+    annotatePeaks.pl ${bedfile} hg38 >  ${dir}_annotation.txt"
+    cd ..
+done
+
+```
