@@ -7,26 +7,32 @@ import re
 
 
 design_sheet = pd.read_csv('Design_sheet.csv', header=0, index_col=0)
-primary = pd.read_csv('PrimaryQC.csv', header=0,index_col=False)
-spikeIn = pd.read_csv('SpikeInQC.csv', header=0,index_col=False)
+primary = pd.read_csv('PrimaryQC.csv', header=0,index_col=0)
+spikeIn = pd.read_csv('SpikeInQC.csv', header=0,index_col=0)
 
 primary.rename(columns={'Primary Genome':'Genome'}, inplace=True)
 primary.rename(columns={'Primary Cell Type':'Cell'}, inplace=True)
 spikeIn.rename(columns={'SpikeIn Genome':'Genome'}, inplace=True)
 spikeIn.rename(columns={'SpikeIn Cell Type':'Cell'}, inplace=True)
 
-basedir = '/home/gdstantonlab/mxw010/Data/Ben/MYOD/GSL-BS-2095'
+basedir = '/home/gdstantonlab/mxw010/Data/Ben/pc-chip-seq/GSL-BS-2005'
 
 uni_input = primary[primary['Target'] == "INPUT"]['Library ID']
 matching_sample = [ design_sheet[design_sheet['Input'] == x].iloc[0]['Sample'] for x in uni_input ]
 input_data = pd.DataFrame({'Sample':matching_sample, 'Input':uni_input})
 
-primary['total_reads'] = spikeIn['total_reads'] =''
-primary['mapped'] = spikeIn['mapped'] =''
-primary['proper_mapped'] = spikeIn['proper_mapped'] = ''
-primary['filtered'] = spikeIn['filtered'] = ''
-primary['deduped'] = spikeIn['deduped'] = ''
-primary['dup_rate'] = spikeIn['dup_rate'] = ''
+primary['total_reads'] = ''
+spikeIn['total_reads'] = ''
+primary['mapped'] = ''
+spikeIn['mapped'] =''
+primary['proper_mapped'] = ''
+spikeIn['proper_mapped'] = ''
+primary['filtered'] = ''
+spikeIn['filtered'] = ''
+primary['deduped'] = ''
+spikeIn['deduped'] = ''
+primary['dup_rate'] = ''
+spikeIn['dup_rate'] = ''
 
 
 for i in range(0,len(primary)):
@@ -70,9 +76,17 @@ for i in range(0,len(primary)):
 		spikeIn.loc[primary.index[orig_indx], 'dup_rate'] = spikeIn_qc['align']['dup']['ctl1']['pct_duplicate_reads']
 
 
+#calculating relative genome size using number of reads.
+genome_size = primary.copy()
+genome_size.drop(['dup_rate', 'total_reads'], axis=1, inplace=True)
 
+for colnames in list(genome_size.columns)[4:]:
+    genome_size[colnames] = primary[colnames]*5.4/spikeIn[colnames]/3
+    
+    
 primary.to_csv("primary_alignment_stats.csv", index=False)
-spikeIn.to_csv("SpikeIn_alignment_stats.csv", index=False)
+spikeIn.to_csv("spikeIn_alignment_stats.csv", index=False)
+genome_size.to_csv("genome_size_estimation.csv", index=False)
 
 #get normalizing factor
 factor = min(spikeIn['deduped'])/spikeIn['deduped']
