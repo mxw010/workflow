@@ -6,9 +6,9 @@ import json
 import re
 
 
-design_sheet = pd.read_csv('Design_sheet.csv', header=0, index_col=0)
-primary = pd.read_csv('PrimaryQC.csv', header=0,index_col=0)
-spikeIn = pd.read_csv('SpikeInQC.csv', header=0,index_col=0)
+design_sheet = pd.read_csv('Design_sheet.csv', header=0, index_col=False)
+primary = pd.read_csv('PrimaryQC.csv', header=0,index_col=False)
+spikeIn = pd.read_csv('SpikeInQC.csv', header=0,index_col=False)
 
 primary.rename(columns={'Primary Genome':'Genome'}, inplace=True)
 primary.rename(columns={'Primary Cell Type':'Cell'}, inplace=True)
@@ -80,7 +80,7 @@ for i in range(0,len(primary)):
 genome_size = primary.copy()
 genome_size.drop(['dup_rate', 'total_reads'], axis=1, inplace=True)
 
-for colnames in list(genome_size.columns)[4:]:
+for colnames in list(genome_size.columns)[5:]:
     genome_size[colnames] = primary[colnames]*5.4/spikeIn[colnames]/3
     
     
