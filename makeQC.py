@@ -62,17 +62,17 @@ for i in range(0,len(primary)):
 	if any(re.search(library, x,re.IGNORECASE) for x in input_data['Sample']):
 		input=input_data[input_data['Sample'] == library]['Input'].to_string(index=False).strip()
 		orig_indx = [ key for key, val in enumerate(primary['Library ID']) if val == input ][0]
-		primary.loc[primary.index[orig_indx], 'total_reads'] = primary_qc['align']['samstat']['ctl1']['total_reads']
-		primary.loc[primary.index[orig_indx], 'mapped'] = primary_qc['align']['samstat']['ctl1']['mapped_reads']
-		primary.loc[primary.index[orig_indx], 'proper_mapped'] = primary_qc['align']['samstat']['ctl1']['properly_paired_reads']
-		primary.loc[primary.index[orig_indx], 'filtered'] = primary_qc['align']['dup']['ctl1']['paired_reads']*2
-		primary.loc[primary.index[orig_indx], 'deduped'] = primary_qc['align']['nodup_samstat']['ctl1']['total_reads']
+		primary.loc[primary.index[orig_indx], 'total_reads'] = primary_qc['align']['samstat']['ctl1']['total_reads']/2
+		primary.loc[primary.index[orig_indx], 'mapped'] = primary_qc['align']['samstat']['ctl1']['mapped_reads']/2
+		primary.loc[primary.index[orig_indx], 'proper_mapped'] = primary_qc['align']['samstat']['ctl1']['properly_paired_reads']/2
+		primary.loc[primary.index[orig_indx], 'filtered'] = primary_qc['align']['dup']['ctl1']['paired_reads']
+		primary.loc[primary.index[orig_indx], 'deduped'] = primary_qc['align']['nodup_samstat']['ctl1']['total_reads']/2
 		primary.loc[primary.index[orig_indx], 'dup_rate'] = primary_qc['align']['dup']['ctl1']['pct_duplicate_reads']
-		spikeIn.loc[spikeIn.index[orig_indx], 'total_reads'] = spikeIn_qc['align']['samstat']['ctl1']['total_reads']
-		spikeIn.loc[spikeIn.index[orig_indx], 'mapped'] = spikeIn_qc['align']['samstat']['ctl1']['mapped_reads']
-		spikeIn.loc[spikeIn.index[orig_indx], 'proper_mapped'] = spikeIn_qc['align']['samstat']['ctl1']['properly_paired_reads']
-		spikeIn.loc[spikeIn.index[orig_indx], 'filtered'] = spikeIn_qc['align']['dup']['ctl1']['paired_reads']*2
-		spikeIn.loc[spikeIn.index[orig_indx], 'deduped'] = spikeIn_qc['align']['nodup_samstat']['ctl1']['total_reads']
+		spikeIn.loc[spikeIn.index[orig_indx], 'total_reads'] = spikeIn_qc['align']['samstat']['ctl1']['total_reads']/2
+		spikeIn.loc[spikeIn.index[orig_indx], 'mapped'] = spikeIn_qc['align']['samstat']['ctl1']['mapped_reads']/2
+		spikeIn.loc[spikeIn.index[orig_indx], 'proper_mapped'] = spikeIn_qc['align']['samstat']['ctl1']['properly_paired_reads']/2
+		spikeIn.loc[spikeIn.index[orig_indx], 'filtered'] = spikeIn_qc['align']['dup']['ctl1']['paired_reads']
+		spikeIn.loc[spikeIn.index[orig_indx], 'deduped'] = spikeIn_qc['align']['nodup_samstat']['ctl1']['total_reads']/2
 		spikeIn.loc[primary.index[orig_indx], 'dup_rate'] = spikeIn_qc['align']['dup']['ctl1']['pct_duplicate_reads']
 
 
